@@ -1,15 +1,18 @@
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { useBooking } from "../contexts/BookingContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useNavigate } from "react-router-dom";
+import { IndianRupee } from "lucide-react";
+import RatingComponent from "../components/RatingComponent";
 
 export default function DashboardPage() {
   const { user } = useAuth();
   const { getCurrentBookings, getPastBookings } = useBooking();
+  const [showRatingFor, setShowRatingFor] = useState<string | null>(null);
   const navigate = useNavigate();
   
   useEffect(() => {
@@ -58,8 +61,14 @@ export default function DashboardPage() {
                         <CardTitle>
                           {booking.pickup} → {booking.dropoff}
                         </CardTitle>
-                        <CardDescription>
-                          {formatDateTime(booking.date, booking.time)}
+                        <CardDescription className="flex items-center gap-2">
+                          <span>{formatDateTime(booking.date, booking.time)}</span>
+                          {booking.priceInr && (
+                            <span className="flex items-center gap-1 text-green-600 font-medium">
+                              <IndianRupee className="h-3 w-3" />
+                              ₹{booking.priceInr.toFixed(2)}
+                            </span>
+                          )}
                         </CardDescription>
                       </div>
                       <div className="bg-secondary text-secondary-foreground text-xs px-2 py-1 rounded-full">
@@ -108,8 +117,8 @@ export default function DashboardPage() {
                       </div>
                     ) : (
                       <div className="text-center py-4 border border-dashed rounded-lg">
-                        <p className="text-muted-foreground mb-2">Waiting for driver assignment</p>
-                        <p className="text-xs text-muted-foreground">You'll be notified once a driver is assigned</p>
+                        <p className="text-muted-foreground mb-2">Looking for available drivers...</p>
+                        <p className="text-xs text-muted-foreground">You'll be notified once a driver accepts</p>
                       </div>
                     )}
                   </CardContent>
@@ -127,25 +136,52 @@ export default function DashboardPage() {
           ) : (
             <div className="space-y-4">
               {pastBookings.map((booking) => (
-                <Card key={booking.id}>
-                  <CardHeader>
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <CardTitle>
-                          {booking.pickup} → {booking.dropoff}
-                        </CardTitle>
-                        <CardDescription>
-                          {formatDateTime(booking.date, booking.time)}
-                        </CardDescription>
+                <div key={booking.id} className="space-y-4">
+                  <Card>
+                    <CardHeader>
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <CardTitle>
+                            {booking.pickup} → {booking.dropoff}
+                          </CardTitle>
+                          <CardDescription className="flex items-center gap-2">
+                            <span>{formatDateTime(booking.date, booking.time)}</span>
+                            {booking.priceInr && (
+                              <span className="flex items-center gap-1 text-green-600 font-medium">
+                                <IndianRupee className="h-3 w-3" />
+                                ₹{booking.priceInr.toFixed(2)}
+                              </span>
+                            )}
+                          </CardDescription>
+                        </div>
+                        <div className={`text-xs px-2 py-1 rounded-full ${
+                          booking.status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        }`}>
+                          {booking.status === 'completed' ? 'Completed' : 'Cancelled'}
+                        </div>
                       </div>
-                      <div className={`text-xs px-2 py-1 rounded-full ${
-                        booking.status === 'completed' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                      }`}>
-                        {booking.status === 'completed' ? 'Completed' : 'Cancelled'}
-                      </div>
-                    </div>
-                  </CardHeader>
-                </Card>
+                    </CardHeader>
+                    {booking.status === 'completed' && (
+                      <CardContent>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setShowRatingFor(showRatingFor === booking.id ? null : booking.id)}
+                        >
+                          {showRatingFor === booking.id ? 'Hide Rating' : 'Rate This Ride'}
+                        </Button>
+                      </CardContent>
+                    )}
+                  </Card>
+                  
+                  {showRatingFor === booking.id && booking.status === 'completed' && (
+                    <RatingComponent
+                      bookingId={parseInt(booking.id)}
+                      driverId={booking.assignedDriverId}
+                      onRatingSubmitted={() => setShowRatingFor(null)}
+                    />
+                  )}
+                </div>
               ))}
             </div>
           )}

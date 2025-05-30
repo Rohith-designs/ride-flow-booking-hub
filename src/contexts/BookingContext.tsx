@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { useAuth } from "./AuthContext";
 import { toast } from "sonner";
@@ -13,6 +12,8 @@ export interface Booking {
   date: string;
   time: string;
   status: "pending" | "confirmed" | "completed" | "cancelled";
+  priceInr?: number;
+  assignedDriverId?: string;
   driver?: {
     name: string;
     phone: string;
@@ -87,7 +88,18 @@ export function BookingProvider({ children }: BookingProviderProps) {
     try {
       const { data, error } = await supabase
         .from("Bookings")
-        .select("*")
+        .select(`
+          *,
+          drivers(
+            name,
+            phone,
+            rating,
+            vehicle_make,
+            vehicle_model,
+            vehicle_color,
+            vehicle_license_plate
+          )
+        `)
         .eq("user_id", user?.id);
 
       if (error) {
@@ -105,17 +117,19 @@ export function BookingProvider({ children }: BookingProviderProps) {
           date: item.booking_date || '',
           time: item.booking_time || '',
           status: (item.status || 'pending') as "pending" | "confirmed" | "completed" | "cancelled",
+          priceInr: item.price_inr ? parseFloat(item.price_inr) : undefined,
+          assignedDriverId: item.assigned_driver_id || undefined,
           createdAt: item.created_at,
-          ...(item.driver_name && {
+          ...(item.drivers && {
             driver: {
-              name: item.driver_name,
-              phone: item.driver_phone || '',
-              rating: 4.8, // Default rating
+              name: item.drivers.name,
+              phone: item.drivers.phone || '',
+              rating: parseFloat(item.drivers.rating) || 4.8,
               vehicle: {
-                make: item.vehicle_make || '',
-                model: item.vehicle_model || '',
-                color: item.vehicle_color || '',
-                licensePlate: item.vehicle_license_plate || '',
+                make: item.drivers.vehicle_make || '',
+                model: item.drivers.vehicle_model || '',
+                color: item.drivers.vehicle_color || '',
+                licensePlate: item.drivers.vehicle_license_plate || '',
               }
             }
           })
@@ -134,6 +148,19 @@ export function BookingProvider({ children }: BookingProviderProps) {
     }
     
     try {
+      // Calculate price using the database function
+      const { data: priceData, error: priceError } = await supabase
+        .rpc('calculate_ride_price', {
+          pickup_location: bookingData.pickup,
+          dropoff_location: bookingData.dropoff
+        });
+
+      if (priceError) {
+        console.error("Error calculating price:", priceError);
+      }
+
+      const calculatedPrice = priceData || 100; // Fallback price
+
       // Insert into Supabase
       const { data, error } = await supabase
         .from("Bookings")
@@ -143,6 +170,7 @@ export function BookingProvider({ children }: BookingProviderProps) {
           dropoff_location: bookingData.dropoff,
           booking_date: bookingData.date,
           booking_time: bookingData.time,
+          price_inr: calculatedPrice,
           status: "pending"
         })
         .select()
@@ -166,14 +194,57 @@ export function BookingProvider({ children }: BookingProviderProps) {
         date: data.booking_date || '',
         time: data.booking_time || '',
         status: (data.status || 'pending') as "pending" | "confirmed" | "completed" | "cancelled",
+        priceInr: parseFloat(data.price_inr) || calculatedPrice,
         createdAt: data.created_at
       };
 
       setBookings(prev => [...prev, newBooking]);
+
+      // Start the driver assignment process
+      setTimeout(() => {
+        assignDriverToBooking(parseInt(newBooking.id));
+      }, 2000);
+
       return newBooking;
     } catch (error: any) {
       console.error("Error in createBooking:", error);
       throw error;
+    }
+  };
+
+  const assignDriverToBooking = async (bookingId: number) => {
+    try {
+      // Get available drivers
+      const { data: drivers, error: driversError } = await supabase
+        .from("drivers")
+        .select("id")
+        .eq("is_available", true)
+        .limit(3);
+
+      if (driversError || !drivers || drivers.length === 0) {
+        console.log("No available drivers found");
+        return;
+      }
+
+      // Create ride requests for available drivers
+      const rideRequests = drivers.map(driver => ({
+        booking_id: bookingId,
+        driver_id: driver.id,
+        status: 'pending'
+      }));
+
+      const { error: requestError } = await supabase
+        .from("ride_requests")
+        .insert(rideRequests);
+
+      if (requestError) {
+        console.error("Error creating ride requests:", requestError);
+        return;
+      }
+
+      toast.success("Looking for available drivers...");
+    } catch (error) {
+      console.error("Error in assignDriverToBooking:", error);
     }
   };
 
@@ -198,48 +269,9 @@ export function BookingProvider({ children }: BookingProviderProps) {
   };
 
   const assignDriver = async (bookingId: string) => {
-    try {
-      // Pick a random driver from our mock data
-      const driver = MOCK_DRIVERS[Math.floor(Math.random() * MOCK_DRIVERS.length)];
-      
-      // Convert bookingId to number for the database operation
-      const numericBookingId = parseInt(bookingId, 10);
-      
-      // Update in Supabase
-      const { error } = await supabase
-        .from("Bookings")
-        .update({
-          status: "confirmed",
-          driver_name: driver.name,
-          driver_phone: driver.phone,
-          vehicle_make: driver.vehicle.make,
-          vehicle_model: driver.vehicle.model,
-          vehicle_color: driver.vehicle.color,
-          vehicle_license_plate: driver.vehicle.licensePlate
-        })
-        .eq("id", numericBookingId);
-
-      if (error) {
-        console.error("Error assigning driver:", error);
-        return;
-      }
-
-      toast.success("A driver has been assigned to your booking!");
-      
-      // Update local state
-      setBookings(prev => prev.map(booking => {
-        if (String(booking.id) === bookingId) {
-          return {
-            ...booking,
-            status: "confirmed" as const,
-            driver
-          };
-        }
-        return booking;
-      }));
-    } catch (error) {
-      console.error("Error in assignDriver:", error);
-    }
+    // This is now handled automatically through the ride_requests system
+    // Keeping for backward compatibility
+    console.log("assignDriver called for booking:", bookingId);
   };
 
   return (
