@@ -202,6 +202,9 @@ export function BookingProvider({ children }: BookingProviderProps) {
       // Pick a random driver from our mock data
       const driver = MOCK_DRIVERS[Math.floor(Math.random() * MOCK_DRIVERS.length)];
       
+      // Convert bookingId to number for the database operation
+      const numericBookingId = parseInt(bookingId, 10);
+      
       // Update in Supabase
       const { error } = await supabase
         .from("Bookings")
@@ -214,7 +217,7 @@ export function BookingProvider({ children }: BookingProviderProps) {
           vehicle_color: driver.vehicle.color,
           vehicle_license_plate: driver.vehicle.licensePlate
         })
-        .eq("id", bookingId);
+        .eq("id", numericBookingId);
 
       if (error) {
         console.error("Error assigning driver:", error);
