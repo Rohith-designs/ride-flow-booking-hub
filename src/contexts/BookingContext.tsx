@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { useAuth } from "./AuthContext";
 import { toast } from "sonner";
@@ -202,7 +203,7 @@ export function BookingProvider({ children }: BookingProviderProps) {
 
       // Start the driver assignment process
       setTimeout(() => {
-        assignDriverToBooking(parseInt(newBooking.id));
+        assignDriverToBooking(data.id); // Use the original number ID here
       }, 2000);
 
       return newBooking;

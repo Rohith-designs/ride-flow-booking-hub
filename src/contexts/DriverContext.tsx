@@ -232,7 +232,7 @@ export function DriverProvider({ children }: DriverProviderProps) {
           status: "confirmed",
           assigned_driver_id: driver?.id
         })
-        .eq("id", request.bookingId);
+        .eq("id", request.bookingId); // request.bookingId is already a number
 
       if (bookingError) {
         throw new Error(bookingError.message);
@@ -242,7 +242,7 @@ export function DriverProvider({ children }: DriverProviderProps) {
       await supabase
         .from("ride_requests")
         .update({ status: "expired" })
-        .eq("booking_id", request.bookingId)
+        .eq("booking_id", request.bookingId) // request.bookingId is already a number
         .neq("id", requestId);
 
       toast.success("Ride request accepted!");
@@ -280,7 +280,7 @@ export function DriverProvider({ children }: DriverProviderProps) {
       const { error } = await supabase
         .from("Bookings")
         .update({ status: "completed" })
-        .eq("id", bookingId);
+        .eq("id", bookingId); // bookingId is already a number
 
       if (error) {
         throw new Error(error.message);
