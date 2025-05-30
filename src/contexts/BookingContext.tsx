@@ -195,7 +195,7 @@ export function BookingProvider({ children }: BookingProviderProps) {
         date: data.booking_date || '',
         time: data.booking_time || '',
         status: (data.status || 'pending') as "pending" | "confirmed" | "completed" | "cancelled",
-        priceInr: parseFloat(data.price_inr) || calculatedPrice,
+        priceInr: parseFloat(String(data.price_inr)) || calculatedPrice,
         createdAt: data.created_at
       };
 

@@ -193,7 +193,7 @@ export function DriverProvider({ children }: DriverProviderProps) {
           vehicleModel: data.vehicle_model,
           vehicleColor: data.vehicle_color,
           vehicleLicensePlate: data.vehicle_license_plate,
-          rating: parseFloat(data.rating) || 4.5,
+          rating: parseFloat(String(data.rating)) || 4.5,
           totalRides: data.total_rides || 0,
           isAvailable: data.is_available || true,
           createdAt: data.created_at
