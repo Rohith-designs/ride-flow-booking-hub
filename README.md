@@ -45,17 +45,15 @@ The development of this platform followed a structured phase-wise process:
 - **Final Deployment & Documentation** – Project structured and documented clearly for deployment and maintenance  
 
 ---
-
 ## 5. Tools & Technologies
 
 | Category        | Tools / Technologies Used                     |
 |----------------|------------------------------------------------|
-| Frontend       | React, React Bootstrap, CSS                   |
-| Backend        | PHP                                            |
-| Database       | MySQL                                          |
-| Server         | XAMPP (Apache + MySQL)                         |
-| Version Control| Git, GitHub                                    |
-| Others         | Postman (API testing), Canva/Figma (UI mockups) |
+| Programming    | TypeScript, JavaScript                         |
+| Frameworks     | React (Vite), Tailwind CSS, Shadcn UI          |
+| Backend        | Supabase (Auth + DB)                           |
+| Styling        | Tailwind CSS, Shadcn UI                        |
+| Tools          | Git, GitHub, Visual Studio Code, Bun           |
 
 ---
 
